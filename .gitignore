@@ -1,0 +1,28 @@
+/build/
+/build-*/
+/builds/
+/dist/
+/out/
+/corpus/
+/push.bat
+/build.bat
+/tools/package-release.ps1
+/tools/push-repo.ps1
+
+# Local dependencies and generated caches.
+__pycache__/
+*.py[cod]
+.cache/
+
+# Local credentials and editor settings.
+.env
+.env.*
+!.env.example
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Local image/frame outputs.
+*.raw
+br_test_tmp.*
