@@ -229,6 +229,15 @@ br_status open_native(const br_capture_options& o, bool cold_start_first, std::u
         note("gdi", st);
         return finish();
     }
+    case BR_TARGET_WINDOW_FULL: {
+        HWND h = reinterpret_cast<HWND>(static_cast<uintptr_t>(o.window));
+        if (!o.window || !IsWindow(h)) return fail(BR_E_NOT_FOUND, "invalid window handle");
+        if (o.client_area) return fail(BR_E_INVALID_ARGUMENT, "full window bounds cannot request client area");
+        if (o.backend != BR_BACKEND_AUTO && o.backend != BR_BACKEND_GDI_PRINT)
+            return fail(BR_E_UNSUPPORTED, "full window bounds require AUTO or GDI_PRINT");
+        if (IsIconic(h)) return fail(BR_E_UNSUPPORTED, "full window bounds capture requires a restored window");
+        return open_gdi_window(h, false, crop, cursor, GdiMode::PrintFull, out);
+    }
     case BR_TARGET_WINDOW: {
         HWND h = reinterpret_cast<HWND>(static_cast<uintptr_t>(o.window));
         if (!o.window || !IsWindow(h)) return fail(BR_E_NOT_FOUND, "invalid window handle");

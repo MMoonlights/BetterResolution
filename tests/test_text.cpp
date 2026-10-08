@@ -25,7 +25,7 @@ TEST(text_presets_and_layout){
     CHECK(a.struct_size==sizeof(a));CHECK(a.scale==1);CHECK(a.grayscale==BR_TEXT_KEEP_COLOR);
     CHECK(a.sharpen==0&&a.normalize==0);CHECK(b.normalize==0);
     CHECK(b.scale==2);CHECK(b.grayscale==BR_TEXT_LUMA);CHECK(b.threshold==BR_TEXT_THRESHOLD_NONE);
-    CHECK(std::strcmp(br_build_id(),br_version_string())==0);
+    CHECK(std::strstr(br_build_id(),"text-v1-")!=nullptr);
     CHECK(std::strstr(br_features(),"text-v1")!=nullptr);
 }
 TEST(text_plain_gray_is_exact_with_negative_stride_and_crop){

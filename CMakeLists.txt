@@ -4,7 +4,11 @@ project(BetterResolution VERSION "${BR_VERSION}" LANGUAGES C CXX)
 
 option(BR_BUILD_TESTS "Build tests" ON)
 option(BR_BUILD_TOOLS "Build the br command-line tool" ON)
+option(BR_BUILD_UIA_HELPER "Build the helper for isolated Windows UIA" ON)
 option(BR_ENABLE_WINDOWS_CAPTURE "Windows capture backends (DXGI, WGC, GDI)" ON)
+option(BR_ENABLE_AUTOMATION "Extensible Computer Use session engine" ON)
+option(BR_ENABLE_WINDOWS_AUTOMATION "Native Windows UIA provider (no runtime dependency)" ON)
+option(BR_BUILD_WINDOWS_AUTOMATION_TESTS "UIA tests on a private Windows desktop" OFF)
 option(BR_STATIC_RUNTIME "Link the C/C++ runtime statically (MinGW/MSVC)" ON)
 
 set(CMAKE_CXX_STANDARD 20)
@@ -55,6 +59,11 @@ set(BR_SOURCES
     src/draw/draw.cpp
 )
 
+if(BR_ENABLE_AUTOMATION)
+    list(APPEND BR_SOURCES src/automation/automation.cpp src/automation/windows_uia.cpp
+        src/automation/windows_isolated.cpp src/automation/vision_bridge.cpp)
+endif()
+
 if(WIN32 AND BR_ENABLE_WINDOWS_CAPTURE)
     list(APPEND BR_SOURCES
         src/platform/windows/win_common.cpp
@@ -69,7 +78,29 @@ else()
     list(APPEND BR_SOURCES src/platform/capture_stub.cpp)
 endif()
 
+file(GLOB_RECURSE BR_STAMP_INPUTS CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/*" "${CMAKE_CURRENT_SOURCE_DIR}/include/*")
+list(APPEND BR_STAMP_INPUTS "${CMAKE_CURRENT_SOURCE_DIR}/CMakeLists.txt")
+list(SORT BR_STAMP_INPUTS)
+set(BR_STAMP_TEXT "")
+foreach(input IN LISTS BR_STAMP_INPUTS)
+    file(READ "${input}" stamp_content)
+    string(REPLACE "\r\n" "\n" stamp_content "${stamp_content}")
+    string(SHA256 digest "${stamp_content}")
+    file(RELATIVE_PATH relative "${CMAKE_CURRENT_SOURCE_DIR}" "${input}")
+    string(APPEND BR_STAMP_TEXT "${relative}:${digest}\n")
+endforeach()
+string(SHA256 BR_SOURCE_SHA "${BR_STAMP_TEXT}")
+string(SUBSTRING "${BR_SOURCE_SHA}" 0 16 BR_SOURCE_ID)
+configure_file(src/core/build_id.hpp.in generated/build_id.hpp @ONLY)
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${BR_STAMP_INPUTS})
+
 function(br_configure_target t)
+    target_compile_definitions(${t} PUBLIC
+        BR_VERSION_MAJOR=${PROJECT_VERSION_MAJOR}
+        BR_VERSION_MINOR=${PROJECT_VERSION_MINOR}
+        BR_VERSION_PATCH=${PROJECT_VERSION_PATCH}
+        BR_VERSION_STRING=\"${PROJECT_VERSION}\")
     target_include_directories(${t} PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:include>)
@@ -85,6 +116,12 @@ function(br_configure_target t)
             target_link_options(${t} PRIVATE -static -static-libgcc -static-libstdc++)
         endif()
     endif()
+    if(BR_ENABLE_AUTOMATION)
+        target_compile_definitions(${t} PRIVATE BR_HAS_AUTOMATION=1)
+        if(WIN32 AND BR_ENABLE_WINDOWS_AUTOMATION)
+            target_compile_definitions(${t} PRIVATE BR_HAS_WINDOWS_AUTOMATION=1)
+        endif()
+    endif()
     if(WIN32)
         target_compile_definitions(${t} PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN UNICODE _UNICODE)
     endif()
@@ -94,6 +131,9 @@ find_package(Threads REQUIRED)
 set(BR_SYSTEM_LIBS Threads::Threads)
 if(WIN32)
     list(APPEND BR_SYSTEM_LIBS user32 gdi32)
+    if(BR_ENABLE_AUTOMATION AND BR_ENABLE_WINDOWS_AUTOMATION)
+        list(APPEND BR_SYSTEM_LIBS ole32 oleaut32 uuid)
+    endif()
 endif()
 
 set(BR_SHARED_SOURCES ${BR_SOURCES})
@@ -108,11 +148,6 @@ endif()
 add_library(betterresolution SHARED ${BR_SHARED_SOURCES})
 br_configure_target(betterresolution)
 target_compile_definitions(betterresolution PRIVATE BR_BUILD_DLL=1)
-target_compile_definitions(betterresolution PUBLIC
-    BR_VERSION_MAJOR=${PROJECT_VERSION_MAJOR}
-    BR_VERSION_MINOR=${PROJECT_VERSION_MINOR}
-    BR_VERSION_PATCH=${PROJECT_VERSION_PATCH}
-    BR_VERSION_STRING=\"${PROJECT_VERSION}\")
 target_link_libraries(betterresolution PRIVATE ${BR_SYSTEM_LIBS})
 set_target_properties(betterresolution PROPERTIES
     OUTPUT_NAME betterresolution
@@ -154,6 +189,12 @@ if(BR_BUILD_TOOLS)
     endif()
 endif()
 
+if(WIN32 AND BR_ENABLE_AUTOMATION AND BR_ENABLE_WINDOWS_AUTOMATION AND BR_BUILD_UIA_HELPER)
+    add_executable(br-uia-helper tools/uia_helper.cpp)
+    br_configure_target(br-uia-helper)
+    target_link_libraries(br-uia-helper PRIVATE betterresolution_static)
+endif()
+
 if(BR_BUILD_TESTS)
     enable_testing()
     add_executable(br-tests
@@ -171,6 +212,9 @@ if(BR_BUILD_TESTS)
         tests/test_shot.cpp
         tests/test_cpp_wrapper.cpp
     )
+    if(BR_ENABLE_AUTOMATION)
+        target_sources(br-tests PRIVATE tests/test_automation.cpp tests/test_automation_vision.cpp tests/test_automation_wire.cpp)
+    endif()
     br_configure_target(br-tests)
     target_link_libraries(br-tests PRIVATE betterresolution_static)
     add_test(NAME br-tests COMMAND br-tests)
@@ -178,6 +222,24 @@ if(BR_BUILD_TESTS)
     set_target_properties(br-c-smoke PROPERTIES C_STANDARD 99 C_STANDARD_REQUIRED ON)
     target_link_libraries(br-c-smoke PRIVATE betterresolution)
     add_test(NAME br-c-smoke COMMAND br-c-smoke)
+    if(BR_ENABLE_AUTOMATION)
+        add_executable(br-auto-provider-example examples/automation_provider.c)
+        target_compile_definitions(br-c-smoke PRIVATE BR_TEST_AUTOMATION=1)
+        set_target_properties(br-auto-provider-example PROPERTIES C_STANDARD 99 C_STANDARD_REQUIRED ON)
+        target_link_libraries(br-auto-provider-example PRIVATE betterresolution)
+        add_test(NAME br-auto-provider-example COMMAND br-auto-provider-example)
+        if(WIN32 AND BR_ENABLE_WINDOWS_AUTOMATION AND BR_BUILD_WINDOWS_AUTOMATION_TESTS)
+            add_executable(br-windows-auto-tests tests/test_windows_automation.cpp)
+            br_configure_target(br-windows-auto-tests)
+            target_link_libraries(br-windows-auto-tests PRIVATE betterresolution comctl32)
+            add_test(NAME br-windows-auto-tests COMMAND br-windows-auto-tests)
+            set_tests_properties(br-windows-auto-tests PROPERTIES TIMEOUT 90)
+            if(TARGET br-uia-helper)
+                add_dependencies(br-windows-auto-tests br-uia-helper)
+                target_compile_definitions(br-windows-auto-tests PRIVATE BR_TEST_UIA_HELPER=1)
+            endif()
+        endif()
+    endif()
 endif()
 
 include(GNUInstallDirs)
@@ -193,6 +255,9 @@ if(MINGW)
 endif()
 if(BR_BUILD_TOOLS)
     install(TARGETS br RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+endif()
+if(TARGET br-uia-helper)
+    install(TARGETS br-uia-helper RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 endif()
 install(EXPORT BetterResolutionTargets
     FILE BetterResolutionTargets.cmake

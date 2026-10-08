@@ -1,13 +1,18 @@
 /build/
 /build-*/
 /builds/
+/build.bat
+/push.bat
+/tools/package-release.ps1
+/tools/push-repo.ps1
+/docs/computer-use-deep-research.md
+/docs/computer-use-library-prompt.md
+/docs/automation-validation.md
+/docs/automation-windows-validation.md
+/docs/desk-mcp-comparison.md
 /dist/
 /out/
 /corpus/
-/push.bat
-/build.bat
-/tools/package-release.ps1
-/tools/push-repo.ps1
 
 # Local dependencies and generated caches.
 __pycache__/

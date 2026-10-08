@@ -279,7 +279,11 @@ TEST(shot_flat_entry_point) {
     CHECK(t[5] >= t[2] && info[1] == 0);
     br_free(data);
     CHECK_OK(br_shot_flat(BR_TARGET_WINDOW, 5, 0, nullptr, 0.5, 0, 0, 0, 0, 0, &data, &size, &w, &h, nullptr, nullptr, nullptr, info));
-    CHECK(info[1] == 1 && size > 8 && data[1] == 'P'); // PNG из сеанса кэша.
+    CHECK(info[1] == 1 && size > 8 && data[1] == 'P'); // PNG from the cached session
+    br_free(data);
+    CHECK_OK(br_shot_flat(BR_TARGET_WINDOW_FULL, 5, 0, nullptr, 0.0, 0, 0, 0, 0, BR_SHOT_NO_CACHE,
+        &data, &size, &w, &h, nullptr, nullptr, nullptr, info));
+    CHECK(data && size > 8 && data[1] == 'P');
     br_free(data);
     int32_t region[4] = {10, 20, 50, 40};
     CHECK_OK(br_shot_flat(BR_TARGET_REGION, 0, 0, region, 0.0, 0, 0, 85, 0, BR_SHOT_NO_CACHE, &data, &size, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr));

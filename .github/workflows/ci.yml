@@ -1,0 +1,86 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: cmake -S . -B build-sandbox -DCMAKE_BUILD_TYPE=Release -DBR_ENABLE_WINDOWS_CAPTURE=OFF
+      - name: Build
+        run: cmake --build build-sandbox -j4
+      - name: Test
+        run: |
+          ctest --test-dir build-sandbox --output-on-failure
+          BR_DISABLE_SIMD=1 ctest --test-dir build-sandbox --output-on-failure
+
+  linux-sanitizers:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build (ASan + UBSan)
+        run: |
+          cmake -S . -B build-sandbox -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBR_BUILD_TOOLS=OFF -DBR_ENABLE_WINDOWS_CAPTURE=OFF \
+            -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer" \
+            -DCMAKE_C_FLAGS="-fsanitize=address,undefined" \
+            -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined" \
+            -DCMAKE_SHARED_LINKER_FLAGS="-fsanitize=address,undefined"
+          cmake --build build-sandbox -j4
+      - name: Test
+        env:
+          UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+          ASAN_OPTIONS: detect_leaks=1
+        run: |
+          ctest --test-dir build-sandbox --output-on-failure
+          BR_DISABLE_SIMD=1 ctest --test-dir build-sandbox --output-on-failure
+
+  windows-msvc:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure isolated tests
+        run: cmake -S . -B build-sandbox -A x64 -DBR_BUILD_TOOLS=OFF -DBR_ENABLE_WINDOWS_CAPTURE=OFF -DBR_BUILD_WINDOWS_AUTOMATION_TESTS=ON
+      - name: Build isolated tests
+        run: cmake --build build-sandbox --config Release
+      - name: Test
+        run: ctest --test-dir build-sandbox -C Release --output-on-failure
+      - name: Configure Windows SDK
+        run: cmake -S . -B build -A x64 -DBR_BUILD_TOOLS=OFF -DBR_BUILD_TESTS=OFF
+      - name: Build Windows SDK
+        run: cmake --build build --config Release
+      - name: Package
+        run: cmake --install build --config Release --prefix dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: betterresolution-windows-x64-msvc
+          path: dist
+
+  windows-mingw-cross:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install MinGW-w64
+        run: sudo apt-get update && sudo apt-get install -y g++-mingw-w64-x86-64 ninja-build
+      - name: Build
+        run: |
+          sudo update-alternatives --set x86_64-w64-mingw32-g++ /usr/bin/x86_64-w64-mingw32-g++-posix
+          sudo update-alternatives --set x86_64-w64-mingw32-gcc /usr/bin/x86_64-w64-mingw32-gcc-posix
+          cmake -S . -B build -G Ninja -DBR_BUILD_TOOLS=OFF -DBR_BUILD_TESTS=OFF \
+            -DCMAKE_SYSTEM_NAME=Windows -DCMAKE_SYSTEM_PROCESSOR=x86_64 \
+            -DCMAKE_C_COMPILER=x86_64-w64-mingw32-gcc \
+            -DCMAKE_CXX_COMPILER=x86_64-w64-mingw32-g++ \
+            -DCMAKE_RC_COMPILER=x86_64-w64-mingw32-windres \
+            -DCMAKE_FIND_ROOT_PATH=/usr/x86_64-w64-mingw32 \
+            -DCMAKE_FIND_ROOT_PATH_MODE_PROGRAM=NEVER \
+            -DCMAKE_FIND_ROOT_PATH_MODE_LIBRARY=ONLY \
+            -DCMAKE_FIND_ROOT_PATH_MODE_INCLUDE=ONLY
+          cmake --build build
+          cmake --install build --prefix dist --strip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: betterresolution-windows-x64-mingw
+          path: dist

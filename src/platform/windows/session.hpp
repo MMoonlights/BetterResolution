@@ -63,7 +63,7 @@ br_status open_wgc_window(HWND hwnd, bool client_only, const br_rect_i32* crop, 
 br_status open_wgc_monitor(HMONITOR mon, const br_rect_i32& mon_rect, const br_rect_i32* crop, bool cursor, bool border,
                            std::unique_ptr<capture::Session>& out);
 // Auto повторно проверяет перекрытие при каждом захвате; Screen/Print принудительно выбирают способ.
-enum class GdiMode { Auto, Screen, Print };
+enum class GdiMode { Auto, Screen, Print, PrintFull };
 br_status open_gdi_region(const br_rect_i32& desktop_rect, bool cursor, std::unique_ptr<capture::Session>& out);
 br_status open_gdi_window(HWND hwnd, bool client_only, const br_rect_i32* crop, bool cursor, GdiMode mode,
                           std::unique_ptr<capture::Session>& out);

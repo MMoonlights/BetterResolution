@@ -176,7 +176,7 @@ br_status br_shot_flat(uint32_t target, uint64_t window, uint32_t monitor, const
     if (!out_data || !out_size) return fail(BR_E_INVALID_ARGUMENT, "null output");
     *out_data = nullptr;
     *out_size = 0;
-    if (target > static_cast<uint32_t>(BR_TARGET_DESKTOP)) return fail(BR_E_INVALID_ARGUMENT, "unknown capture target");
+    if (target > static_cast<uint32_t>(BR_TARGET_WINDOW_FULL)) return fail(BR_E_INVALID_ARGUMENT, "unknown capture target");
     if (jpeg_quality < 0 || jpeg_quality > 100) return fail(BR_E_INVALID_ARGUMENT, "jpeg_quality must be 0 (PNG) or 1..100");
     if (flags & ~static_cast<uint32_t>(BR_SHOT_NO_CACHE | BR_SHOT_REUSE_ENCODED))
         return fail(BR_E_INVALID_ARGUMENT, "br_shot_flat accepts only NO_CACHE and REUSE_ENCODED (it always returns encoded bytes)");

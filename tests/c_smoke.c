@@ -1,5 +1,7 @@
 /* Обычная C-программа использует общую библиотеку: проверяет совместимость br.h с C99 и работу DLL. */
 #include <br/br.h>
+#include <br/br_automation_vision.h>
+#include <br/br_automation_win.h>
 #include <br/br_text.h>
 #include <br/br_shot.h>
 #include <br/br_vision.h>
@@ -8,6 +10,23 @@
 #include <string.h>
 
 int main(void) {
+#ifdef BR_TEST_AUTOMATION
+    {
+        br_auto_string path = {"helper", 6};
+        br_auto_windows_isolated_options opts = br_auto_windows_isolated_options_default(1, path);
+        br_auto_session* session = NULL;
+        if (opts.struct_size != sizeof(opts)) return 15;
+        opts.max_ipc_bytes = 0;
+        if (br_auto_windows_open_isolated(&opts, NULL, &session) != BR_AUTO_INVALID_ARGUMENT || session) return 16;
+    }
+    {
+        br_auto_element element = {0};
+        br_auto_vision_plan plan = {0};
+        br_transform map = {1, 1, 0, 0};
+        if (br_auto_snapshot_find_id(NULL, 1, &element) != BR_AUTO_INVALID_ARGUMENT) return 13;
+        if (br_auto_vision_plan_detail(NULL, 1, 10, 10, &map, NULL, &plan) != BR_E_INVALID_ARGUMENT) return 14;
+    }
+#endif
     {
         br_vision_options options = br_vision_options_default(BR_VISION_ICON);
         br_rect_i32 region = {20,20,12,12};

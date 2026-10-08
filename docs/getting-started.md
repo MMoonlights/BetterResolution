@@ -1,13 +1,13 @@
 # Сборка и подключение
 
-Нужны CMake 3.20+ и компилятор C++20. Базовая библиотека не требует сторонних пакетов.
+Нужны CMake 3.20+ и компилятор C++20. Базовая библиотека не требует сторонних пакетов
 
-## Product-сборка
+## Сборка SDK
 
 Windows, MSVC:
 
 ```bat
-cmake -S . -B build -G "Visual Studio 17 2022" -A x64 -DBR_BUILD_TESTS=OFF
+cmake -S . -B build -G "Visual Studio 17 2022" -A x64 -DBR_BUILD_TOOLS=OFF -DBR_BUILD_TESTS=OFF
 cmake --build build --config Release
 cmake --install build --config Release --prefix dist
 ```
@@ -15,7 +15,7 @@ cmake --install build --config Release --prefix dist
 Windows, MinGW:
 
 ```bash
-cmake -S . -B build -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DBR_BUILD_TESTS=OFF
+cmake -S . -B build -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DBR_BUILD_TOOLS=OFF -DBR_BUILD_TESTS=OFF
 cmake --build build
 cmake --install build --prefix dist
 ```
@@ -23,15 +23,20 @@ cmake --install build --prefix dist
 Linux:
 
 ```bash
-cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBR_BUILD_TESTS=OFF
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBR_BUILD_TOOLS=OFF -DBR_BUILD_TESTS=OFF
 cmake --build build
 cmake --install build --prefix dist
 ```
 
-Windows capture включён по умолчанию; сборка не запускает захват.
-В `dist/bin` находятся CLI и DLL, в `dist/lib` - библиотеки и CMake package,
-в `dist/include/br` - `br.h`, `br.hpp`, `br_shot.h`, `br_text.h`, `br_vision.h`.
-На Linux shared library находится в `dist/lib`.
+Windows capture включён по умолчанию; сборка не запускает захват
+В `dist/bin` находится DLL, в `dist/lib` - библиотеки и CMake package,
+в `dist/include/br` - публичные заголовки
+Изолированный UIA использует `dist/bin/br-uia-helper.exe`
+На Linux shared library находится в `dist/lib`
+
+`BR_BUILD_TOOLS=ON` добавляет необязательный CLI
+`BR_BUILD_UIA_HELPER=OFF` отключает сборку helper, если изолированный UIA не нужен
+`BR_ENABLE_AUTOMATION=OFF` оставляет обработку изображений и захват
 
 ## Тесты
 
@@ -43,7 +48,7 @@ cmake --build build-sandbox --config Release
 ctest --test-dir build-sandbox -C Release --output-on-failure
 ```
 
-Не используйте один каталог для product и тестовой сборки.
+Не используйте один каталог для product и тестовой сборки
 
 ## CMake-проект
 
@@ -53,10 +58,14 @@ target_link_libraries(my_app PRIVATE BetterResolution::betterresolution)
 # или: BetterResolution::betterresolution_static
 ```
 
+MSVC static library по умолчанию собрана с `/MT`. Для такого consumer задайте
+`CMAKE_MSVC_RUNTIME_LIBRARY="MultiThreaded$<$<CONFIG:Debug>:Debug>"` перед созданием
+его target. Для `/MD` пересоберите BR с `BR_STATIC_RUNTIME=OFF`
+
 `CMAKE_PREFIX_PATH` указывает на `dist`. Для подпроекта используйте `add_subdirectory`
-и targets `BetterResolution::BetterResolution` / `BetterResolution::Static`.
-Для прямой линковки добавьте `dist/include`, import library и DLL рядом с приложением.
-Статическая сборка требует совместимого компилятора и `BR_STATIC` перед заголовком.
+и targets `BetterResolution::BetterResolution` / `BetterResolution::Static`
+Для прямой линковки добавьте `dist/include`, import library и DLL рядом с приложением
+Статическая сборка требует совместимого компилятора и `BR_STATIC` перед заголовком
 
 ## Первый пример
 
@@ -83,5 +92,5 @@ done:
 }
 ```
 
-Выделенные изображения освобождаются `br_image_free`, кодированные байты - `br_free`.
-Справочник: [api.md](api.md); команды: [cli.md](cli.md).
+Выделенные изображения освобождаются `br_image_free`, кодированные байты - `br_free`
+Справочник: [api.md](api.md); команды: [cli.md](cli.md)

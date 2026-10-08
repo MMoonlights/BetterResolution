@@ -1,4 +1,6 @@
 #include <br/br.h>
+#include "build_id.hpp"
+
 #include "api/context.hpp"
 #include "core/common.hpp"
 #include "core/cpu.hpp"
@@ -50,12 +52,18 @@ const char* br_status_string(br_status s) {
 
 const char* br_last_error(void) { return br::last_error(); }
 
-const char* br_build_id(void) { return BR_VERSION_STRING; }
+const char* br_build_id(void) { return BR_BUILD_ID; }
 
 const char* br_features(void) {
     static const std::string f = [] {
         std::string s = resize::simd_kernels().name;
         s += ",threads,text-v1,text-resize-policy,detail-tiles,vision-detail-v1,vision-shot,exact-encode-cache";
+#if defined(BR_HAS_AUTOMATION)
+        s += ",automation-v1,automation-providers,automation-target-read,automation-vision,automation-select-named";
+#endif
+#if defined(BR_HAS_WINDOWS_AUTOMATION)
+        s += ",automation-windows-uia,automation-windows-isolated";
+#endif
         const char* cap = capture::features();
         if (cap && *cap) { s += ","; s += cap; }
         return s;

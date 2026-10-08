@@ -56,7 +56,7 @@ void vertical(uint3 id : SV_DispatchThreadID) {
     }
     if (antiring) acc = clamp(acc, mn, mx);
     float3 c = linearLight ? toSrgb(acc.rgb) : saturate(acc.rgb);
-    Dst[id.xy] = float4(c.b, c.g, c.r, 1.0); // UAV R8G8B8A8 с байтами BGRA.
+    Dst[id.xy] = float4(c.b, c.g, c.r, 1.0); // R8G8B8A8 UAV holding BGRA bytes
 }
 )HLSL";
 

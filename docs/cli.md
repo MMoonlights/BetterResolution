@@ -1,5 +1,8 @@
 # CLI
 
+Необязательная утилита SDK для обработки изображений
+Для её сборки задайте `BR_BUILD_TOOLS=ON`
+
 ## Формат файла
 
 ```bash
@@ -11,8 +14,8 @@ br format in.png out.ppm
 br format in.png out.jpg --quality 85
 ```
 
-Расширение выхода выбирает PNG, JPEG, BMP, QOI или PNM. `convert` - алиас `format`.
-PNG сохраняет выбранные пиксели без потерь; JPEG сжимает с потерями.
+Расширение выхода выбирает PNG, JPEG, BMP, QOI или PNM. `convert` - алиас `format`
+PNG сохраняет выбранные пиксели без потерь; JPEG сжимает с потерями
 
 ## Размер и область
 
@@ -25,19 +28,19 @@ br resize in.png crop.png --region 100,50,800,600
 ```
 
 Один размер сохраняет пропорции; два задают точную геометрию. `--long-edge` ограничивает
-длинную сторону. Режимы: `--mode text|quality|balanced|fast`; явный фильтр: `--filter point|triangle|catmull|mitchell|lanczos3`.
+длинную сторону. Режимы: `--mode text|quality|balanced|fast`; явный фильтр: `--filter point|triangle|catmull|mitchell|lanczos3`
 
-## Подготовка данных и детали оригинала
+## OCR и детали оригинала
 
 ```bash
-br text original.png prepared.png --preset screenshot --region 100,80,400,120
+br text original.png ocr.png --preset ocr --region 100,80,400,120
 br detail original.png text.png --intent text --region 100,80,400,120
 br detail original.png icon.png --intent icon --region 20,40,24,24
 ```
 
-`text` подготавливает выбранную область изображения. `detail` сохраняет цвет и контекст,
-пишет PNG и JSON с координатами. Берите область из оригинала, а не из уменьшенного JPEG.
-Подробнее: [подготовка изображений](text-vision.md), [цветные детали](vision-detail.md).
+`text` готовит данные для внешнего OCR. `detail` сохраняет цвет и контекст, пишет PNG
+и JSON с координатами. Берите область из оригинала, а не из уменьшенного JPEG
+Подробнее: [OCR](text-vision.md), [vision](vision-detail.md)
 
 ## Информация и изменения
 
@@ -48,7 +51,7 @@ br diff before.png after.png --json
 br annotate in.png marked.png --grid
 ```
 
-`diff`: код 0 - одинаковые кадры, 2 - есть изменения.
+`diff`: код 0 - одинаковые кадры, 2 - есть изменения
 
 ## Windows capture
 
@@ -60,6 +63,6 @@ br shot --window "Notepad" --width 1280 -o notepad.png --json
 ```
 
 Используйте заголовок из `br windows`. `vision` по умолчанию сохраняет native PNG;
-`compact` - JPEG q95. Числовые параметры размера применяются явно.
+`compact` - JPEG q95. Числовые параметры размера применяются явно
 Снимки экрана требуют сборки с capture ON. Автоматические тесты - только CPU с
-capture OFF: [сборка](getting-started.md#тесты). [Координаты и сессии](capture.md).
+capture OFF: [сборка](getting-started.md#тесты). [Координаты и сессии](capture.md)

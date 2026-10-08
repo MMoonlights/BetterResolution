@@ -1,3 +1,4 @@
+#include <type_traits>
 #include <br/br_text.h>
 #include "api/context.hpp"
 #include "core/common.hpp"
@@ -219,9 +220,17 @@ br_status br_text_prepare_with_resize(br_context* ctx,const br_image_view* src,b
         return br::fail(BR_E_INVALID_ARGUMENT,"invalid text source, region or nonempty output");
     if(options && options->struct_size!=sizeof(br_text_options))return br::fail(BR_E_INVALID_ARGUMENT,"text options size mismatch");
     const br_text_options o=options?*options:br_text_options_default(BR_TEXT_SCREENSHOT);
+    // Проверяем исходное число до чтения enum, чтобы неверный ввод из C не вызывал UB.
+    if(resize_options){
+        std::underlying_type_t<br_filter> filter{};
+        std::underlying_type_t<br_resize_mode> mode{};
+        std::memcpy(&filter,&resize_options->filter,sizeof(filter));
+        std::memcpy(&mode,&resize_options->mode,sizeof(mode));
+        if(static_cast<uint64_t>(filter)>BR_FILTER_POINT||static_cast<uint64_t>(mode)>BR_RESIZE_UI_TEXT)
+            return br::fail(BR_E_INVALID_ARGUMENT,"invalid text resize policy");
+    }
     auto ro=resize_options?*resize_options:br_resize_options_for(BR_RESIZE_UI_TEXT);
-    if(ro.filter<BR_FILTER_AUTO||ro.filter>BR_FILTER_POINT||ro.mode<BR_RESIZE_QUALITY||ro.mode>BR_RESIZE_UI_TEXT||
-       ro.linear_light>1||ro.antiring>1||ro.multistage>1||ro.preserve_alpha>1||ro.threads>64)
+    if(ro.linear_light>1||ro.antiring>1||ro.multistage>1||ro.preserve_alpha>1||ro.threads>64)
         return br::fail(BR_E_INVALID_ARGUMENT,"invalid text resize policy");
     if(o.threads)ro.threads=o.threads;
     ro.preserve_alpha=0; // Исходная альфа сводится перед изменением размера.

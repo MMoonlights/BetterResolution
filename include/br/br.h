@@ -115,7 +115,7 @@ BR_API const char* br_status_string(br_status status);
 BR_API const char* br_last_error(void);
 /* Возможности сборки и среды выполнения через запятую, например "avx2,threads,dxgi,wgc,gdi". */
 BR_API const char* br_features(void);
-/* Версия загруженной библиотеки без автоматически создаваемого идентификатора сборки. */
+/* Идентификатор исходников загруженной библиотеки. */
 BR_API const char* br_build_id(void);
 
 BR_API void* br_alloc(size_t size);
@@ -380,7 +380,8 @@ typedef enum br_capture_target {
     BR_TARGET_MONITOR = 0,
     BR_TARGET_WINDOW = 1,
     BR_TARGET_REGION = 2,  /* прямоугольная область виртуального рабочего стола */
-    BR_TARGET_DESKTOP = 3  /* весь виртуальный рабочий стол (все мониторы) */
+    BR_TARGET_DESKTOP = 3, /* весь виртуальный рабочий стол (все мониторы) */
+    BR_TARGET_WINDOW_FULL = 4 /* Полный GetWindowRect через PrintWindow, включая невидимые края. */
 } br_capture_target;
 
 typedef struct br_capture_options {

@@ -15,7 +15,7 @@ namespace {
 class GdiSession final : public CachedSession {
 public:
     explicit GdiSession(GdiMode mode) : mode_(mode) {
-        backend_ = mode == GdiMode::Print ? BR_BACKEND_GDI_PRINT : mode == GdiMode::Screen ? BR_BACKEND_GDI_SCREEN : BR_BACKEND_GDI;
+        backend_ = mode == GdiMode::Print || mode == GdiMode::PrintFull ? BR_BACKEND_GDI_PRINT : mode == GdiMode::Screen ? BR_BACKEND_GDI_SCREEN : BR_BACKEND_GDI;
     }
     ~GdiSession() override {
         free_dib();
@@ -91,7 +91,11 @@ private:
             return r.width > 0 && r.height > 0;
         }
         if (IsIconic(hwnd_)) return false;
-        r = to_rect(client_ ? client_rect_screen(hwnd_) : window_frame(hwnd_));
+        if (mode_ == GdiMode::PrintFull) {
+            RECT bounds{};
+            if (!GetWindowRect(hwnd_, &bounds)) return false;
+            r = to_rect(bounds);
+        } else r = to_rect(client_ ? client_rect_screen(hwnd_) : window_frame(hwnd_));
         if (has_crop_) {
             const int32_t x0 = std::max(r.x, crop_.x), y0 = std::max(r.y, crop_.y);
             const int32_t x1 = std::min(r.x + r.width, crop_.x + crop_.width), y1 = std::min(r.y + r.height, crop_.y + crop_.height);
@@ -138,7 +142,7 @@ private:
         br_capture_backend used = BR_BACKEND_GDI_SCREEN;
         const RECT area{r.x, r.y, r.x + r.width, r.y + r.height};
         // В режиме Auto использует пиксели экрана, только если цель ничем не перекрыта.
-        const bool use_print = hwnd_ && mode_ != GdiMode::Screen && (mode_ == GdiMode::Print || !window_is_unobstructed(hwnd_, area));
+        const bool use_print = hwnd_ && mode_ != GdiMode::Screen && (mode_ == GdiMode::Print || mode_ == GdiMode::PrintFull || !window_is_unobstructed(hwnd_, area));
         if (use_print) {
             RECT wr{};
             GetWindowRect(hwnd_, &wr);
@@ -166,6 +170,10 @@ private:
             }
         }
         if (!done) {
+            if (mode_ == GdiMode::Print || mode_ == GdiMode::PrintFull)
+                return fail(BR_E_UNSUPPORTED, "PrintWindow failed or returned a blank image; explicit PrintWindow never reads screen pixels");
+            if (use_print && !window_is_unobstructed(hwnd_, area))
+                return fail(BR_E_UNSUPPORTED, "PrintWindow failed and the target is covered; screen fallback is unavailable");
             br_status st = ensure_dib(r.width, r.height);
             if (st != BR_OK) return st;
             HDC screen = GetDC(nullptr);

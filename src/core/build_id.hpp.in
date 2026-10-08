@@ -1,0 +1,2 @@
+#pragma once
+#define BR_BUILD_ID "text-v1-@BR_SOURCE_ID@"
