@@ -96,6 +96,14 @@ int br_read_command(const std::vector<std::string>& args) {
             auto query=br_observation_query_default();query.contains=string(match);br_observation* selected=nullptr;
             br::check(br_observation_select(result.get(),&query,&selected),"observation selection");result.reset(selected);
         }
+        br_observation_info info{};
+        br::check(br_observation_get_info(result.get(),&info),"observation info");
+        if(!info.item_count) {
+            std::fprintf(stderr, "%s\n", match.empty()
+                ? "br read: no items found"
+                : "br read: --match selected no items; omit --match to keep all detected items");
+            if(!image_path.empty())std::fprintf(stderr,"br read: output image has no marks\n");
+        }
         if(!image_path.empty()) {
             br_image drawn{};br::check(br_observation_image(result.get(),&marks,&drawn),"marked image");br::Image output(drawn);
             auto v=output.view();auto png=br_encode_options_default(BR_ENCODE_PNG);br::check(br_save(image_path.c_str(),&v,&png),"marked PNG");

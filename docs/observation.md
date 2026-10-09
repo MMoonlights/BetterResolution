@@ -8,6 +8,7 @@ BR возвращает текст, координаты, JSON и изображ
 ```bat
 br read frame.png
 br read frame.png --json --language en-US
+br read frame.png --image marked.png --mark rect
 br read frame.png --match delivered --image marked.png --mark circle
 br read frame.png --match delivered --crop detail.png
 br read frame.png --tsv words.tsv --json
@@ -18,6 +19,8 @@ br read frame.png --region 100,80,400,120 --words --json
 
 `--words` возвращает отдельные слова Windows OCR
 `--match` ищет точную подстроку в тексте или подписи
+Без `--match` выводятся все найденные элементы
+Если ничего не найдено, CLI сообщает об этом в stderr
 `--image` сохраняет PNG с рамками или кружками
 `--crop` сохраняет область первого выбранного элемента
 `--region` ограничивает чтение указанной областью, карта учитывает её смещение
