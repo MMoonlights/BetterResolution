@@ -1,6 +1,7 @@
 /build/
 /build-*/
 /builds/
+/.github/
 /build.bat
 /push.bat
 /tools/package-release.ps1
