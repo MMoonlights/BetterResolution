@@ -11,12 +11,16 @@ br read frame.png --json --language en-US
 br read frame.png --match delivered --image marked.png --mark circle
 br read frame.png --match delivered --crop detail.png
 br read frame.png --tsv words.tsv --json
+br read --languages
+br read large.png --max-pixels 67108864 --json
+br read frame.png --region 100,80,400,120 --words --json
 ```
 
 `--words` возвращает отдельные слова Windows OCR
 `--match` ищет точную подстроку в тексте или подписи
 `--image` сохраняет PNG с рамками или кружками
 `--crop` сохраняет область первого выбранного элемента
+`--region` ограничивает чтение указанной областью, карта учитывает её смещение
 Оригинал остаётся неизменным
 
 Для своих данных:
@@ -76,7 +80,10 @@ TEXT и JSON кешируются после первого запроса
 Отключение: `BR_ENABLE_WINDOWS_OCR=OFF`
 Вызов синхронный, без принудительного тайм-аута WinRT
 Без движка или языка возвращается `BR_E_UNSUPPORTED`
-Размер кадра должен укладываться в лимит Windows OCR
+Большие кадры читаются плитками с перекрытием, без уменьшения исходных пикселей
+Координаты переводятся в общий кадр, одинаковые результаты на перекрытиях объединяются
+Лимит по умолчанию - 16 млн пикселей, явный максимум - 64 млн
+Список установленных языков: `br read --languages` или `br_observation_ocr_languages_json`
 Прозрачность для OCR сводится на белом фоне
 Модуль не скачивает языковые пакеты
 

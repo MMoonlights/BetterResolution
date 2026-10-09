@@ -11,6 +11,7 @@
 #include <string.h>
 
 int main(void) {
+    if (br_observation_ocr_languages_json(NULL, 0, NULL) != BR_E_INVALID_ARGUMENT) return 19;
     {
         br_observation_item item = {0};
         br_observation* observation = NULL;

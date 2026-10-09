@@ -8,6 +8,7 @@
 ```bat
 br read frame.png --json
 br read frame.png --match delivered --image marked.png --mark circle
+br read --languages
 ```
 
 Параметры и SDK: [текст и разметка](observation.md)

@@ -5,6 +5,10 @@
 #include <limits>
 #include <memory>
 #include <thread>
+#include "observe/ocr_tiles.hpp"
+#if defined(_WIN32)
+#include <windows.h>
+#endif
 
 namespace {
 br_observation_string str(const char* s){return {s,std::strlen(s)};}
@@ -130,4 +134,56 @@ TEST(observation_windows_ocr_has_real_text_or_reports_missing_backend){
         for(size_t i=0;i<info.item_count;++i){br_observation_item n{};CHECK_OK(br_observation_item_at(r.get(),i,&n));CHECK(n.source==BR_OBSERVATION_OCR && n.confidence==-1);}}
     br_image_free(&image);
     CHECK(br_observation_ocr_windows(nullptr,nullptr,nullptr,&out)==BR_E_INVALID_ARGUMENT);
+}
+
+TEST(ocr_tiles_cover_all_pixels_and_keep_exact_original_coordinates){
+    const auto tiles=br::observe::ocr_tiles(11,9,6,2);std::vector<unsigned> covered(11*9);
+    CHECK(tiles.size()==6);
+    for(const auto b:tiles){CHECK(b.width<=6 && b.height<=6 && b.x>=0 && b.y>=0 && b.x+b.width<=11 && b.y+b.height<=9);
+        for(int32_t y=b.y;y<b.y+b.height;++y)for(int32_t x=b.x;x<b.x+b.width;++x)++covered[size_t(y)*11+x];}
+    for(auto n:covered)CHECK(n>0);
+    const auto wide=br::observe::ocr_tiles(3000,1000,2560,128);
+    CHECK(wide.size()==2 && wide[1].x==2432 && wide[1].width==568);
+    CHECK(br::observe::same_ocr_region({100,50,80,20},{102,51,78,20}));
+    CHECK(!br::observe::same_ocr_region({100,50,80,20},{200,50,80,20}));
+}
+TEST(ocr_language_queries_are_repeatable_and_do_not_write_short_buffers){
+    size_t size=0;auto st=br_observation_ocr_languages_json(nullptr,0,&size);
+    if(st==BR_E_UNSUPPORTED){CHECK(br_observation_ocr_languages_json(nullptr,0,nullptr)==BR_E_INVALID_ARGUMENT);return;}
+    CHECK_OK(st);CHECK(size>=3);std::vector<char> output(size);
+    for(int run=0;run<4;++run){CHECK_OK(br_observation_ocr_languages_json(output.data(),output.size(),&size));CHECK(output[0]=='[');}
+    char tiny[2]={'x','y'};CHECK(br_observation_ocr_languages_json(tiny,2,&size)==BR_E_BUFFER_TOO_SMALL);
+    CHECK(tiny[0]=='x' && tiny[1]=='y');
+}
+TEST(ocr_reads_large_plain_image_corners_and_overlap_once){
+#if defined(_WIN32) && defined(BR_HAS_WINDOWS_OCR)
+    constexpr int width=4000,height=3000;
+    BITMAPINFO bi{};bi.bmiHeader.biSize=sizeof(BITMAPINFOHEADER);bi.bmiHeader.biWidth=width;bi.bmiHeader.biHeight=-height;
+    bi.bmiHeader.biPlanes=1;bi.bmiHeader.biBitCount=32;bi.bmiHeader.biCompression=BI_RGB;
+    void* pixels=nullptr;HDC dc=CreateCompatibleDC(nullptr);HBITMAP bitmap=CreateDIBSection(dc,&bi,DIB_RGB_COLORS,&pixels,nullptr,0);
+    CHECK(dc && bitmap && pixels);if(!dc || !bitmap || !pixels){if(bitmap)DeleteObject(bitmap);if(dc)DeleteDC(dc);return;}
+    auto old_bitmap=SelectObject(dc,bitmap);std::memset(pixels,255,size_t(width)*height*4);
+    HFONT font=CreateFontW(-36,0,0,0,FW_NORMAL,FALSE,FALSE,FALSE,DEFAULT_CHARSET,OUT_DEFAULT_PRECIS,CLIP_DEFAULT_PRECIS,
+        ANTIALIASED_QUALITY,DEFAULT_PITCH,L"Segoe UI");auto old_font=SelectObject(dc,font);SetTextColor(dc,RGB(0,0,0));SetBkMode(dc,TRANSPARENT);
+    TextOutW(dc,80,80,L"TOP LEFT",8);TextOutW(dc,3500,80,L"TOP RIGHT",9);
+    TextOutW(dc,80,2700,L"BOTTOM LEFT",11);TextOutW(dc,3500,2700,L"BOTTOM RIGHT",12);
+    TextOutW(dc,2440,800,L"EDGE",4);
+    GdiFlush();auto bytes=static_cast<uint8_t*>(pixels);for(size_t i=3;i<size_t(width)*height*4;i+=4)bytes[i]=255;
+    br_image_view image{};image.data=bytes;image.width=width;image.height=height;image.stride=width*4;
+    image.format=BR_PIXEL_BGRA8;image.color_space=BR_COLOR_SRGB;
+    auto options=br_observation_ocr_options_default();options.words=1;options.language=str("en-US");br_observation* raw=nullptr;
+    const auto st=br_observation_ocr_windows(&image,nullptr,&options,&raw);
+    SelectObject(dc,old_font);DeleteObject(font);SelectObject(dc,old_bitmap);DeleteObject(bitmap);DeleteDC(dc);
+    if(st==BR_E_UNSUPPORTED){CHECK(!raw);return;}
+    CHECK_OK(st);Result result(raw,br_observation_destroy);br_observation_info info{};CHECK_OK(br_observation_get_info(raw,&info));
+    CHECK(info.width==width && info.height==height && info.complete);
+    bool left_top=false,right_top=false,left_bottom=false,right_bottom=false;size_t edge=0;
+    for(size_t i=0;i<info.item_count;++i){br_observation_item n{};CHECK_OK(br_observation_item_at(raw,i,&n));std::string text(n.text.data,n.text.size);
+        left_top|=text=="LEFT" && n.bounds.x<500 && n.bounds.y<200;
+        right_top|=text=="RIGHT" && n.bounds.x>3400 && n.bounds.y<200;
+        left_bottom|=text=="LEFT" && n.bounds.x<500 && n.bounds.y>2600;
+        right_bottom|=text=="RIGHT" && n.bounds.x>3400 && n.bounds.y>2600;
+        edge+=text=="EDGE";}
+    CHECK(left_top && right_top && left_bottom && right_bottom);CHECK(edge==1);
+#endif
 }

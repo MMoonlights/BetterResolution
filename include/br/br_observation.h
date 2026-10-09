@@ -73,10 +73,14 @@ BR_API br_status br_observation_crop(const br_observation*, size_t index, uint32
 BR_API br_status br_observation_from_tsv(br_observation_string, const br_image_view*, const br_transform*,
     const br_observation_options*, br_observation** out);
 /* OCR переданного изображения, локально через установленный Windows OCR.
+ * Большой кадр читается плитками с перекрытием без уменьшения, bounds относятся ко всему кадру.
  * Синхронный вызов; WinRT работает в отдельном MTA-потоке. Без загрузки языковых пакетов.
  * На других платформах, без модуля или языка возвращает UNSUPPORTED. */
 BR_API br_status br_observation_ocr_windows(const br_image_view*, const br_transform*,
     const br_observation_ocr_options*, br_observation** out);
+/* Установленные языки OCR: JSON-массив {tag,name}. Размер включает NUL.
+ * output=NULL запрашивает размер; недостаточный буфер не меняется. */
+BR_API br_status br_observation_ocr_languages_json(char* output,size_t capacity,size_t* size);
 #ifdef __cplusplus
 }
 #endif
