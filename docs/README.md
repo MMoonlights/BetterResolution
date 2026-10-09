@@ -8,4 +8,5 @@
 - [Подготовка изображений](text-vision.md)
 - [Детали изображения](vision-detail.md)
 - [Работа с интерфейсом](automation.md)
+- [Текст и разметка](observation.md)
 - [Устройство библиотеки](internals.md)

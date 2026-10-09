@@ -101,6 +101,32 @@ br_status rect(const br_mut_image_view& img, br_rect_i32 r, uint32_t argb, int32
     return BR_OK;
 }
 
+br_status ellipse(const br_mut_image_view& img, br_rect_i32 r, uint32_t argb, int32_t thickness) {
+    if (!validate_image(img)) return fail(BR_E_INVALID_ARGUMENT, "invalid image");
+    if (r.width <= 0 || r.height <= 0) return BR_OK;
+    const double rx = double(r.width) / 2, ry = double(r.height) / 2;
+    const double cx = double(r.x) + rx, cy = double(r.y) + ry;
+    const double ix = std::max(0.0, rx - thickness), iy = std::max(0.0, ry - thickness);
+    const auto y0 = int32_t(std::clamp(double(r.y), 0.0, double(img.height)));
+    const auto y1 = int32_t(std::clamp(double(r.y) + r.height, 0.0, double(img.height)));
+    Painter p(img, argb);
+    const auto span = [&](double l, double right, int32_t y) {
+        const auto a = int32_t(std::clamp(std::ceil(l - 0.5), 0.0, double(img.width)));
+        const auto b = int32_t(std::clamp(std::ceil(right - 0.5), 0.0, double(img.width)));
+        p.fill(a, y, b, y + 1);
+    };
+    for (int32_t y = y0; y < y1; ++y) {
+        const double dy = double(y) + 0.5 - cy;
+        const double outer = rx * std::sqrt(std::max(0.0, 1 - dy * dy / (ry * ry)));
+        if (thickness <= 0 || ix == 0 || iy == 0 || std::abs(dy) >= iy) span(cx - outer, cx + outer, y);
+        else {
+            const double inner = ix * std::sqrt(std::max(0.0, 1 - dy * dy / (iy * iy)));
+            span(cx - outer, cx - inner, y); span(cx + inner, cx + outer, y);
+        }
+    }
+    return BR_OK;
+}
+
 br_status line(const br_mut_image_view& img, int32_t x0, int32_t y0, int32_t x1, int32_t y1, uint32_t argb) {
     if (!validate_image(img)) return fail(BR_E_INVALID_ARGUMENT, "invalid image");
     Painter p(img, argb);

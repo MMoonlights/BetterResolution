@@ -4,16 +4,19 @@
 #include <cmath>
 #include <cstring>
 #include <limits>
+#include <memory>
 
 namespace {
 struct BridgeProvider {
     br_rect_i32 bounds{-96, 22, 6, 4};
+    const char* text = nullptr;
     bool complete = true;
     static br_auto_status observe(void* u, const br_auto_observe_request*, const br_auto_operation*,
                                   br_auto_emit_fn emit, void* sink, br_auto_observe_info* info) {
         auto& p = *static_cast<BridgeProvider*>(u);
         br_auto_node n{};
         n.native_id = 1; n.incarnation = 1; n.bounds = p.bounds;
+        if(p.text) n.name={p.text,std::strlen(p.text)};
         const auto st = emit(sink, &n);
         info->complete = p.complete ? 1 : 0;
         return st;
@@ -70,6 +73,29 @@ TEST(automation_vision_original_pixels_and_negative_screen_origin) {
         CHECK(std::memcmp(detail.data + ptrdiff_t(y) * detail.stride, expected, size_t(detail.width) * 3) == 0);
     }
     br_image_free(&detail);
+}
+
+TEST(automation_observation_exports_uia_text_in_frame_coordinates) {
+    BridgeProvider p;p.text="Status: delivered";br::AutomationSession session(p.provider());auto snapshot=session.observe();
+    Image image;auto view=br_image_as_view(&image.image);br_transform map{2,2,-100,20};br_observation* raw=nullptr;
+    CHECK_OK(br_auto_observation_create(snapshot.get(),&view,&map,nullptr,&raw));
+    std::unique_ptr<br_observation,decltype(&br_observation_destroy)> result(raw,br_observation_destroy);
+    br_observation_item n{};CHECK_OK(br_observation_item_at(result.get(),0,&n));
+    CHECK(n.source==BR_OBSERVATION_UIA && n.id==snapshot.element(0).id && n.confidence==-1);
+    CHECK(n.bounds.x==2 && n.bounds.y==1 && n.bounds.width==3 && n.bounds.height==2);
+    CHECK(std::string(n.text.data,n.text.size)=="Status: delivered");
+    size_t size=0;CHECK_OK(br_observation_json(result.get(),nullptr,0,&size));std::vector<char> json(size);
+    CHECK_OK(br_observation_json(result.get(),json.data(),json.size(),&size));
+    CHECK(std::strstr(json.data(),"\"source\":\"uia\"")!=nullptr);
+    CHECK(std::strstr(json.data(),"\"confidence\":null")!=nullptr);
+    p.complete=false;auto partial=session.observe();br_observation* partial_raw=nullptr;
+    CHECK_OK(br_auto_observation_create(partial.get(),&view,&map,nullptr,&partial_raw));
+    std::unique_ptr<br_observation,decltype(&br_observation_destroy)> incomplete(partial_raw,br_observation_destroy);
+    br_observation_info info{};CHECK_OK(br_observation_get_info(incomplete.get(),&info));CHECK(!info.complete);
+    p.text=nullptr;auto unnamed=session.observe();br_observation* icon_raw=nullptr;
+    CHECK_OK(br_auto_observation_create(unnamed.get(),&view,&map,nullptr,&icon_raw));
+    std::unique_ptr<br_observation,decltype(&br_observation_destroy)> icon(icon_raw,br_observation_destroy);
+    CHECK_OK(br_observation_item_at(icon.get(),0,&n));CHECK(n.kind==BR_OBSERVATION_OBJECT && n.text.size==0);
 }
 
 TEST(automation_vision_zoom_border_and_fractional_coordinates) {

@@ -5,6 +5,7 @@ project(BetterResolution VERSION "${BR_VERSION}" LANGUAGES C CXX)
 option(BR_BUILD_TESTS "Build tests" ON)
 option(BR_BUILD_TOOLS "Build the br command-line tool" ON)
 option(BR_BUILD_UIA_HELPER "Build the helper for isolated Windows UIA" ON)
+option(BR_ENABLE_WINDOWS_OCR "Use installed Windows OCR (MSVC + Windows SDK)" ON)
 option(BR_ENABLE_WINDOWS_CAPTURE "Windows capture backends (DXGI, WGC, GDI)" ON)
 option(BR_ENABLE_AUTOMATION "Extensible Computer Use session engine" ON)
 option(BR_ENABLE_WINDOWS_AUTOMATION "Native Windows UIA provider (no runtime dependency)" ON)
@@ -16,6 +17,12 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 set(CMAKE_VISIBILITY_INLINES_HIDDEN ON)
+if(WIN32 AND MSVC AND BR_ENABLE_WINDOWS_OCR)
+    include(CheckIncludeFileCXX)
+    set(CMAKE_REQUIRED_LIBRARIES windowsapp)
+    check_include_file_cxx("winrt/Windows.Media.Ocr.h" BR_HAVE_WINDOWS_OCR)
+    unset(CMAKE_REQUIRED_LIBRARIES)
+endif()
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     set(CMAKE_BUILD_TYPE Release CACHE STRING "" FORCE)
 endif()
@@ -23,6 +30,8 @@ endif()
 set(BR_SOURCES
     src/text/vision.cpp
     src/text/text.cpp
+    src/observe/observation.cpp
+    src/observe/windows_ocr.cpp
     src/api/api_core.cpp
     src/api/api_resize.cpp
     src/api/api_codec.cpp
@@ -125,12 +134,18 @@ function(br_configure_target t)
     if(WIN32)
         target_compile_definitions(${t} PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN UNICODE _UNICODE)
     endif()
+    if(WIN32 AND MSVC AND BR_ENABLE_WINDOWS_OCR AND BR_HAVE_WINDOWS_OCR)
+        target_compile_definitions(${t} PRIVATE BR_HAS_WINDOWS_OCR=1)
+    endif()
 endfunction()
 
 find_package(Threads REQUIRED)
 set(BR_SYSTEM_LIBS Threads::Threads)
 if(WIN32)
     list(APPEND BR_SYSTEM_LIBS user32 gdi32)
+    if(MSVC AND BR_ENABLE_WINDOWS_OCR AND BR_HAVE_WINDOWS_OCR)
+        list(APPEND BR_SYSTEM_LIBS windowsapp)
+    endif()
     if(BR_ENABLE_AUTOMATION AND BR_ENABLE_WINDOWS_AUTOMATION)
         list(APPEND BR_SYSTEM_LIBS ole32 oleaut32 uuid)
     endif()
@@ -175,7 +190,7 @@ target_link_libraries(betterresolution_static PUBLIC ${BR_SYSTEM_LIBS})
 add_library(BetterResolution::Static ALIAS betterresolution_static)
 
 if(BR_BUILD_TOOLS)
-    add_executable(br tools/br.cpp tools/text_command.cpp tools/vision_command.cpp tools/json.cpp)
+    add_executable(br tools/br.cpp tools/text_command.cpp tools/vision_command.cpp tools/read_command.cpp tools/json.cpp)
     br_configure_target(br)
     target_link_libraries(br PRIVATE betterresolution_static)
     if(WIN32)
@@ -199,6 +214,7 @@ if(BR_BUILD_TESTS)
     enable_testing()
     add_executable(br-tests
         tests/test_vision.cpp
+        tests/test_observation.cpp
         tests/test_text.cpp
         tests/test_main.cpp
         tests/test_codecs.cpp

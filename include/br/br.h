@@ -306,6 +306,8 @@ BR_API br_status br_diff(const br_image_view* before, const br_image_view* after
 
 /* thickness <= 0 заполняет прямоугольник. */
 BR_API br_status br_draw_rect(br_mut_image_view* image, br_rect_i32 rect, uint32_t argb, int32_t thickness);
+/* Овал внутри bounds; thickness <= 0 заполняет область. Координаты обрезаются по кадру. */
+BR_API br_status br_draw_ellipse(br_mut_image_view* image, br_rect_i32 bounds, uint32_t argb, int32_t thickness);
 BR_API br_status br_draw_line(br_mut_image_view* image, int32_t x0, int32_t y0, int32_t x1, int32_t y1, uint32_t argb);
 /* Встроенный шрифт ASCII 5x7. scale >= 1 увеличивает символы. При alpha=0 у background_argb фон прозрачный. */
 BR_API br_status br_draw_text(br_mut_image_view* image, int32_t x, int32_t y, const char* text,

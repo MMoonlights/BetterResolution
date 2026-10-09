@@ -11,6 +11,7 @@ BR - SDK для изображений, захвата экрана и рабо�
 - Сравнение кадров и пересчёт координат
 - Поиск элементов, действия и проверка результата
 - Windows UI Automation и свои провайдеры
+- Текст из OCR, JSON, вырезки и разметка найденного
 
 Обработка изображений и общий движок работают в Windows и Linux
 Захват экрана и встроенный UIA доступны в Windows
@@ -31,6 +32,7 @@ cmake --install build --config Release --prefix dist
 
 - [Подключение SDK](docs/integration.md)
 - [Работа с интерфейсом](docs/automation.md)
+- [Текст и разметка](docs/observation.md)
 - [CLI](docs/cli.md)
 - [C API](docs/api.md)
 - [Сборка и подключение](docs/getting-started.md)

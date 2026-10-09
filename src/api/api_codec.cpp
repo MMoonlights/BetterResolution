@@ -165,6 +165,10 @@ br_status br_diff(const br_image_view* a, const br_image_view* b, const br_diff_
     });
 }
 
+br_status br_draw_ellipse(br_mut_image_view* img, br_rect_i32 r, uint32_t argb, int32_t thickness) {
+    if (!img) return fail(BR_E_INVALID_ARGUMENT, "null image");
+    return guarded([&] { return draw::ellipse(*img, r, argb, thickness); });
+}
 br_status br_draw_rect(br_mut_image_view* img, br_rect_i32 r, uint32_t argb, int32_t thickness) {
     if (!img) return fail(BR_E_INVALID_ARGUMENT, "null image");
     return draw::rect(*img, r, argb, thickness);

@@ -80,6 +80,9 @@ PNG, JPEG, BMP, QOI и PNM. PNG - без потерь при OFF/AUTO palette; J
 `br_automation_vision.h` связывает bounds элемента с деталями переданного кадра
 Контракты владения, примеры и ограничения: [automation](automation.md)
 
+`br_observation.h` возвращает текст, JSON, области и разметку из UIA, OCR или своих данных
+Примеры: [текст и разметка](observation.md)
+
 ## Прочее
 
 `br_diff` возвращает области изменений; `br_hash_image_tiles` - хэши областей

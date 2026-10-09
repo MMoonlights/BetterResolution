@@ -3,6 +3,7 @@
 #include <br/br.h>
 
 namespace br::draw {
+br_status ellipse(const br_mut_image_view&, br_rect_i32, uint32_t argb, int32_t thickness);
 
 br_status rect(const br_mut_image_view& img, br_rect_i32 r, uint32_t argb, int32_t thickness);
 br_status line(const br_mut_image_view& img, int32_t x0, int32_t y0, int32_t x1, int32_t y1, uint32_t argb);

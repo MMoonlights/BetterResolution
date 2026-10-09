@@ -2,6 +2,7 @@
 #include <br/br.h>
 #include <br/br_automation_vision.h>
 #include <br/br_automation_win.h>
+#include <br/br_observation.h>
 #include <br/br_text.h>
 #include <br/br_shot.h>
 #include <br/br_vision.h>
@@ -10,6 +11,17 @@
 #include <string.h>
 
 int main(void) {
+    {
+        br_observation_item item = {0};
+        br_observation* observation = NULL;
+        br_observation_string text = {"C output", 8};
+        char output[32]; size_t size = 0;
+        item.source = BR_OBSERVATION_CUSTOM; item.kind = BR_OBSERVATION_TEXT;
+        item.text = text; item.confidence = -1;
+        if (br_observation_create(&item, 1, NULL, NULL, NULL, &observation) != BR_OK) return 17;
+        if (br_observation_text(observation, output, sizeof(output), &size) != BR_OK || strcmp(output, "C output")) return 18;
+        br_observation_destroy(observation);
+    }
 #ifdef BR_TEST_AUTOMATION
     {
         br_auto_string path = {"helper", 6};

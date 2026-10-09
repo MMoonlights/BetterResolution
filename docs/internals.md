@@ -6,6 +6,7 @@
 - `src/text` - OCR-подготовка и цветные детали оригинала
 - `src/platform` - DXGI/WGC/GDI и заглушка без capture
 - `src/automation` - сессии, провайдеры, UIA и изоляция helper
+- `src/observe` - результаты, фильтры, OCR и разметка
 - `src/analysis`, `src/draw` - изменения кадров и разметка
 - `tools` - необязательный CLI и UIA helper; `tests` - C/C++ проверки
 

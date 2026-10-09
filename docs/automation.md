@@ -138,7 +138,8 @@ Cancel остаётся активным до вызова `br_auto_reset_cancel
 В обычном `br_auto_windows_open` отмена и timeouts кооперативные
 Для защиты от зависшего COM используйте изолированный режим
 
-Встроенного CDP, OCR-движка, Linux desktop provider и глобального ввода пока нет
+Windows OCR и вывод наблюдений: [текст и разметка](observation.md)
+Встроенного CDP, Linux desktop provider и глобального ввода пока нет
 Провайдеры подключаются через C API
 
 ## Проверка

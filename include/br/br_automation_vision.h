@@ -6,6 +6,7 @@
 #define BETTERRESOLUTION_BR_AUTOMATION_VISION_H
 #include "br_automation.h"
 #include "br_vision.h"
+#include "br_observation.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -35,6 +36,12 @@ BR_API br_status br_auto_vision_plan_detail(const br_auto_snapshot*, uint64_t el
 BR_API br_status br_auto_vision_prepare(br_context*, const br_auto_snapshot*, uint64_t element_id,
     const br_image_view* original, const br_transform* image_to_screen,
     const br_vision_options*, br_image* out_image, br_auto_vision_plan* out_plan);
+/* Текст и bounds снимка в общем формате наблюдения, с необязательным кадром.
+ * map переводит пиксели кадра в координаты экрана; NULL = единичная карта.
+ * UIA не сообщает confidence, поэтому сохраняется -1. Snapshot и кадр должны
+ * относиться к одному состоянию; функция не захватывает экран и не проверяет свежесть. */
+BR_API br_status br_auto_observation_create(const br_auto_snapshot*, const br_image_view*,
+    const br_transform* image_to_screen, const br_observation_options*, br_observation** out);
 #ifdef __cplusplus
 }
 #endif

@@ -1,6 +1,7 @@
 # Подготовка для OCR
 
 BR готовит изображение. Текст распознаёт внешний движок, например Tesseract
+Windows OCR, текстовый вывод и разметка: [текст и разметка](observation.md)
 
 ```sh
 br text original.png ocr.png --preset ocr --region 100,80,400,120

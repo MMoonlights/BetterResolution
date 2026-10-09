@@ -3,6 +3,15 @@
 Необязательная утилита SDK для обработки изображений
 Для её сборки задайте `BR_BUILD_TOOLS=ON`
 
+## Текст и разметка
+
+```bat
+br read frame.png --json
+br read frame.png --match delivered --image marked.png --mark circle
+```
+
+Параметры и SDK: [текст и разметка](observation.md)
+
 ## Формат файла
 
 ```bash

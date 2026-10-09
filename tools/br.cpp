@@ -37,6 +37,7 @@
 using brjson::Value;
 int br_text_command(const std::vector<std::string>& args);
 int br_vision_command(const std::vector<std::string>& args);
+int br_read_command(const std::vector<std::string>& args);
 
 namespace {
 
@@ -868,6 +869,7 @@ void usage() {
         "  br capture [-o out.png] [--monitor N | --window TITLE | --hwnd H | --region x,y,w,h | --desktop]\n"
         "             [--client] [--backend auto|dxgi|wgc|gdi|gdi-screen|gdi-print] [--cursor] [--border] SIZE [--grid [--step PX]] [--json]\n"
         "  br shot [TARGET] [-o out.png] SIZE [RESIZE] [ENCODE] [--profile vision|compact|legacy]\n"
+        "  br read in.png [--json] [--match TEXT] [--image marked.png] [--mark circle|rect] [--crop crop.png]\n"
         "          [--repeat N] [--settle MS] [--no-cache] [--no-reuse-encoded] [--prewarm] [--json]\n"
         "             capture + fit + encode with a persistent session\n"
         "  br monitors [--json]\n"
@@ -921,6 +923,7 @@ int main(int argc, char** argv) {
                 die("--fit was removed; use explicit dimensions or --scale");
     if (cmd == "text") return br_text_command(raw);
     if (cmd == "detail") return br_vision_command(raw);
+    if (cmd == "read") return br_read_command(raw);
     Args a;
     std::string err;
     if (!parse_args(raw, a, err)) die(err);

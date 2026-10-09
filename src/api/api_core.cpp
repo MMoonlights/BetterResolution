@@ -58,6 +58,10 @@ const char* br_features(void) {
     static const std::string f = [] {
         std::string s = resize::simd_kernels().name;
         s += ",threads,text-v1,text-resize-policy,detail-tiles,vision-detail-v1,vision-shot,exact-encode-cache";
+        s += ",observation-v1";
+#if defined(BR_HAS_WINDOWS_OCR)
+        s += ",windows-ocr";
+#endif
 #if defined(BR_HAS_AUTOMATION)
         s += ",automation-v1,automation-providers,automation-target-read,automation-vision,automation-select-named";
 #endif
